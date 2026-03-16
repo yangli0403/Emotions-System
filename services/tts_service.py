@@ -178,7 +178,7 @@ class CosyVoiceTTSService(ITTSService):
             voice_id: 音色 ID。
 
         Returns:
-            完整的音频数据。
+            完整的音频数据（WAV 格式）。
         """
         audio_chunks = []
         async for chunk in self.synthesize_stream(
@@ -186,3 +186,48 @@ class CosyVoiceTTSService(ITTSService):
         ):
             audio_chunks.append(chunk)
         return b"".join(audio_chunks)
+
+    async def synthesize_to_file(
+        self,
+        text: str,
+        output_path: str,
+        emotion_instruction: str = "",
+        voice_id: str = "",
+    ) -> str:
+        """合成语音并保存为独立的音频文件。
+
+        这是一个便捷方法，将合成结果直接写入指定路径的文件。
+        适用于批量生成测试样例、离线合成等场景。
+
+        Args:
+            text: 要合成的文本（可包含 [laughter]、[breath] 等标记）。
+            output_path: 输出音频文件的完整路径（如 output/test.wav）。
+            emotion_instruction: 情感自然语言指令。
+            voice_id: 复刻音色 ID 或系统内置音色 ID。
+
+        Returns:
+            实际保存的文件路径。
+
+        Raises:
+            RuntimeError: 合成或写入失败时抛出。
+        """
+        from pathlib import Path
+
+        audio_data = await self.synthesize_full(
+            text, emotion_instruction, voice_id
+        )
+
+        if not audio_data:
+            raise RuntimeError(f"合成结果为空，无法保存文件: {output_path}")
+
+        # 确保输出目录存在
+        out = Path(output_path)
+        out.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(out, "wb") as f:
+            f.write(audio_data)
+
+        logger.info(
+            f"音频已保存: {output_path} ({len(audio_data)} bytes)"
+        )
+        return str(out)

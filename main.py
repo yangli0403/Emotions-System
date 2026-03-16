@@ -37,12 +37,13 @@ logger = logging.getLogger(__name__)
 # 全局组件引用
 orchestrator: Optional[Orchestrator] = None
 voice_cloning_service: Optional[DashScopeVoiceCloningService] = None
+tts_service: Optional[CosyVoiceTTSService] = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期管理。"""
-    global orchestrator, voice_cloning_service
+    global orchestrator, voice_cloning_service, tts_service
 
     logger.info("Emotions-System 启动中...")
 
@@ -227,6 +228,94 @@ async def delete_voice(voice_id: str):
         return JSONResponse(
             status_code=404,
             content={"error": f"音色 {voice_id} 不存在"},
+        )
+
+
+# ========== REST API: 单独合成音频文件 ==========
+
+@app.post("/api/tts/synthesize")
+async def synthesize_audio(
+    text: str = Form(...),
+    emotion_instruction: str = Form(""),
+    voice_id: str = Form(""),
+):
+    """单独合成一段音频并返回 WAV 文件。
+
+    Args:
+        text: 要合成的文本（可包含 [laughter]、[breath] 等标记）。
+        emotion_instruction: 情感自然语言指令（如“用开心的语气说话”）。
+        voice_id: 音色 ID（复刻音色或系统内置音色）。
+    """
+    from fastapi.responses import Response
+
+    if not tts_service:
+        return JSONResponse(
+            status_code=503,
+            content={"error": "TTS 服务未初始化"},
+        )
+
+    try:
+        audio_data = await tts_service.synthesize_full(
+            text=text,
+            emotion_instruction=emotion_instruction,
+            voice_id=voice_id,
+        )
+        if not audio_data:
+            return JSONResponse(
+                status_code=500,
+                content={"error": "合成结果为空"},
+            )
+        return Response(
+            content=audio_data,
+            media_type="audio/wav",
+            headers={
+                "Content-Disposition": "attachment; filename=synthesized.wav"
+            },
+        )
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(e)},
+        )
+
+
+@app.post("/api/tts/synthesize-to-file")
+async def synthesize_to_file(
+    text: str = Form(...),
+    output_filename: str = Form("output.wav"),
+    emotion_instruction: str = Form(""),
+    voice_id: str = Form(""),
+):
+    """合成音频并保存到服务器本地文件。
+
+    Args:
+        text: 要合成的文本。
+        output_filename: 输出文件名（保存在 data/output/ 目录下）。
+        emotion_instruction: 情感自然语言指令。
+        voice_id: 音色 ID。
+    """
+    if not tts_service:
+        return JSONResponse(
+            status_code=503,
+            content={"error": "TTS 服务未初始化"},
+        )
+
+    output_path = Path("data/output") / output_filename
+    try:
+        saved_path = await tts_service.synthesize_to_file(
+            text=text,
+            output_path=str(output_path),
+            emotion_instruction=emotion_instruction,
+            voice_id=voice_id,
+        )
+        return JSONResponse(content={
+            "success": True,
+            "file_path": saved_path,
+        })
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(e)},
         )
 
 
