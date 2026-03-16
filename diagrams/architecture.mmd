@@ -1,0 +1,55 @@
+graph TD
+    subgraph "客户端 / 前端"
+        A[WebSocket 客户端 / 虚拟人前端]
+    end
+
+    subgraph "Emotions-System 核心引擎"
+        B[Orchestrator 编排器]
+        
+        subgraph "文本与情感处理层"
+            C[LLMService 大语言模型服务]
+            D[ActionParser 动作解析器]
+            E[SoundTagConverter 音效标签转换器]
+            F[FallbackInferenceService 兜底推理服务]
+        end
+        
+        subgraph "语音合成与封装层"
+            G[CommandPackager 指令包装器]
+            H[CosyVoiceTTSService 语音合成服务]
+            I[VoiceCloningService 声音复刻服务]
+        end
+        
+        subgraph "协议适配层"
+            J[ProtocolAdapter 协议适配器]
+        end
+    end
+
+    subgraph "外部云服务 (阿里百炼)"
+        K[DashScope LLM API]
+        L[DashScope CosyVoice TTS API]
+        M[DashScope Voice Cloning API]
+    end
+
+    A <-->|WebSocket| B
+    B --> C
+    C <-->|流式请求/响应| K
+    C -->|文本流| D
+    D -->|解析后 Token| E
+    E -->|转换后 Token| G
+    
+    G -.->|无标签时请求推断| F
+    F -.->|返回情感| G
+    
+    G -->|合成请求| H
+    I -->|提供复刻音色 ID| H
+    H <-->|双向流式| L
+    I <-->|音频上传/管理| M
+    
+    H -->|音频数据| G
+    G -->|MultimodalSegment| J
+    J -->|JSON 格式| B
+    
+    style H fill:#4CAF50,color:#fff
+    style I fill:#4CAF50,color:#fff
+    style E fill:#2196F3,color:#fff
+    style F fill:#FF9800,color:#fff
