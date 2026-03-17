@@ -6,91 +6,104 @@ Emotions-System 在原有 [Emotions-Express](https://github.com/Open-LLM-VTuber/
 
 ## Features
 
-- **细粒度情感语音合成**：通过 CosyVoice v3.5 的自然语言指令（instruction），支持超越 7 种基础枚举的复杂情感表达（如"强压怒火的平静"、"带着自嘲的无奈"）。
+- **细粒度情感语音合成**：通过 CosyVoice 的自然语言指令（instruction），支持超越 7 种基础枚举的复杂情感表达（如"强压怒火的平静"、"带着自嘲的无奈"）。
 - **音效标签内生融合**：`SoundTagConverter` 将 `[sound:laugh]`、`[sound:sigh]` 等音效标签转换为 CosyVoice 的 `[laughter]`、`[breath]` 文本内标记，让音效与语音无缝融合，音色一致。
-- **双向流式合成**：采用 DashScope SDK 的双向流式调用模式，实现"边生成文本、边合成语音、边播放"的低延迟交互。
+- **双向流式合成**：采用 DashScope SDK 的流式调用模式，实现"边生成文本、边合成语音、边播放"的低延迟交互。
 - **复合情感标签**：`[emotion:happy|instruction:语气活泼俏皮，带着明显的笑意]` 格式同时满足前端动画的离散状态需求和 TTS 的连续情感控制。
+- **多 LLM 后端支持**：支持 OpenAI 兼容 API 和字节火山引擎 Ark SDK（DeepSeek/豆包等模型），通过配置切换。
 - **可插拔兜底推理**：预留 V1（规则引擎）、V2（BERT 分类）、V3（句内情感分割）三级兜底推理架构。
 - **零样本声音复刻**：通过 DashScope Voice Cloning API，上传 3-10 秒参考音频即可创建个性化音色。
+- **Web 测试面板**：内置可视化测试界面，支持 WebSocket 对话、TTS 独立测试、音色管理。
 - **Open-LLM-VTuber 协议兼容**：输出格式完全兼容主流虚拟人前端项目。
 
 ## Prerequisites
 
 - Python >= 3.11
 - 阿里百炼 DashScope API Key（用于 CosyVoice TTS 和声音复刻）
-- OpenAI 兼容 LLM API Key（用于对话生成）
+- LLM API Key（支持以下两种之一）：
+  - **字节火山引擎 Ark SDK**（推荐，支持 DeepSeek/豆包模型）
+  - **OpenAI 兼容 API**（OpenAI、Azure OpenAI 等）
 
-## Installation
+## Quick Start
+
+### 方式一：Manus 环境一键启动
 
 ```bash
 # 克隆仓库
 git clone https://github.com/yangli0403/Emotions-System.git
 cd Emotions-System
 
-# 安装依赖
+# 运行 Manus 一键配置脚本
+bash scripts/setup_manus.sh
+# 首次运行会创建 .env 文件，编辑后再次运行即可启动
+```
+
+### 方式二：手动安装
+
+```bash
+# 1. 克隆仓库
+git clone https://github.com/yangli0403/Emotions-System.git
+cd Emotions-System
+
+# 2. 安装依赖
 pip install -e ".[dev]"
 
-# 配置环境变量
+# 3. 配置环境变量
 cp .env.example .env
-# 编辑 .env 文件，填入你的 API Key
+# 编辑 .env 文件，填入你的 API Key（参见下方配置说明）
+
+# 4. 启动服务
+python -m uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
-## Quick Start
-
-### 1. 配置环境变量
+### 方式三：Docker 部署
 
 ```bash
-export LLM_API_KEY="your_openai_api_key"
-export DASHSCOPE_API_KEY="your_dashscope_api_key"
-export TTS_MODEL="cosyvoice-v2"
-export TTS_DEFAULT_VOICE="longxiaochun"
+# 1. 配置环境变量
+cp .env.example .env
+# 编辑 .env 文件
+
+# 2. 启动容器
+docker-compose up -d
 ```
 
-### 2. 启动服务
-
-```bash
-uvicorn main:app --host 0.0.0.0 --port 8000
-```
-
-### 3. WebSocket 对话
-
-使用任意 WebSocket 客户端连接 `ws://localhost:8000/ws`，发送 JSON 消息：
-
-```json
-{
-  "text": "你好，今天天气怎么样？"
-}
-```
-
-系统将流式返回包含音频、情感、动作指令的多模态响应。
-
-### 4. REST API 单独合成
-
-```bash
-# 合成音频并下载
-curl -X POST http://localhost:8000/api/tts/synthesize \
-  -F "text=你好世界！" \
-  -F "emotion_instruction=用开心的语气说话" \
-  --output output.wav
-
-# 合成并保存到服务器
-curl -X POST http://localhost:8000/api/tts/synthesize-to-file \
-  -F "text=你好世界！" \
-  -F "output_filename=hello.wav" \
-  -F "emotion_instruction=用开心的语气说话"
-```
+启动后访问 `http://localhost:8000` 即可打开 Web 测试面板。
 
 ## Configuration
 
+### LLM 后端配置
+
+系统支持两种 LLM 后端，通过 `LLM_BACKEND` 环境变量切换：
+
+| Variable | 字节 Ark 后端 | OpenAI 后端 |
+|----------|--------------|-------------|
+| `LLM_BACKEND` | `ark` | `openai` |
+| `LLM_API_KEY` | 火山引擎 API Key | OpenAI API Key |
+| `LLM_MODEL` | Endpoint ID（如 `ep-xxxxxxx`） | 模型名（如 `gpt-4`） |
+| `LLM_BASE_URL` | 无需设置 | `https://api.openai.com/v1` |
+
+### TTS 配置
+
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `LLM_API_KEY` | OpenAI 兼容 LLM API 密钥 | `""` |
-| `LLM_BASE_URL` | LLM API 基础 URL | `https://api.openai.com/v1` |
-| `LLM_MODEL` | LLM 模型名称 | `gpt-4` |
+| `DASHSCOPE_API_KEY` | 阿里百炼 DashScope API 密钥 | `""` |
+| `TTS_MODEL` | CosyVoice 模型版本（推荐 `cosyvoice-v1`） | `cosyvoice-v1` |
+| `TTS_DEFAULT_VOICE` | 默认音色 ID | `longxiaochun` |
+
+> **为什么推荐 cosyvoice-v1？** 本项目的核心功能是情感指令控制（instruction），而 cosyvoice-v2 **不支持**设置情感指令。cosyvoice-v1 支持 instruction 且价格更低（1元/万字符 vs 2元/万字符）。如需 SSML、LaTeX 等高级功能，可升级至 v3 系列。
+
+### 全部环境变量
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `LLM_BACKEND` | LLM 后端类型 | `ark` |
+| `LLM_API_KEY` | LLM API 密钥 | `""` |
+| `LLM_BASE_URL` | LLM API 基础 URL（OpenAI 后端） | `https://api.openai.com/v1` |
+| `LLM_MODEL` | LLM 模型名称或 Endpoint ID | `gpt-4` |
 | `LLM_TEMPERATURE` | LLM 生成温度 | `0.7` |
 | `LLM_MAX_TOKENS` | LLM 最大 Token 数 | `1024` |
 | `DASHSCOPE_API_KEY` | 阿里百炼 DashScope API 密钥 | `""` |
-| `TTS_MODEL` | CosyVoice 模型版本 | `cosyvoice-v2` |
+| `TTS_MODEL` | CosyVoice 模型版本 | `cosyvoice-v1` |
 | `TTS_DEFAULT_VOICE` | 默认音色 ID | `longxiaochun` |
 | `VOICE_CONFIG_PATH` | 复刻音色配置文件路径 | `data/voice_configs.json` |
 | `SERVER_HOST` | 服务器监听地址 | `0.0.0.0` |
@@ -105,8 +118,8 @@ Emotions-System/
 │   ├── models.py               # ActionTag, ParsedSentence, MultimodalSegment, VoiceCloneConfig
 │   └── interfaces.py           # ILLMService, ITTSService, IVoiceCloningService, IFallbackInferenceService, IProtocolAdapter
 ├── services/                   # 业务逻辑实现
-│   ├── llm_service.py          # OpenAI 兼容 LLM 服务
-│   ├── tts_service.py          # CosyVoice TTS 服务（双向流式合成）
+│   ├── llm_service.py          # OpenAI 兼容 LLM + 字节 Ark SDK 双后端
+│   ├── tts_service.py          # CosyVoice TTS 服务（流式合成）
 │   ├── voice_cloning_service.py # 声音复刻服务
 │   ├── action_parser.py        # 动作/情感标签解析器
 │   ├── sound_tag_converter.py  # 音效标签内生化转换器
@@ -115,22 +128,17 @@ Emotions-System/
 │   └── orchestrator.py         # 编排器（协调完整数据流）
 ├── adapters/                   # 协议适配层
 │   └── protocol_adapter.py     # Open-LLM-VTuber 协议适配器
+├── static/                     # Web 测试前端
+│   └── index.html              # 可视化测试面板
+├── scripts/                    # 工具脚本
+│   ├── start.sh                # 快速启动脚本
+│   └── setup_manus.sh          # Manus 环境一键配置脚本
+├── data/                       # 运行时数据目录
+│   ├── uploads/                # 音频上传目录
+│   └── output/                 # 合成音频输出目录
 ├── config.py                   # 配置管理（环境变量加载）
 ├── main.py                     # FastAPI 应用入口
-├── tests/                      # 自动化测试套件
-│   ├── test_action_parser.py
-│   ├── test_command_packager.py
-│   ├── test_config.py
-│   ├── test_fallback_inference.py
-│   ├── test_llm_service.py
-│   ├── test_models.py
-│   ├── test_orchestrator.py
-│   ├── test_protocol_adapter.py
-│   ├── test_sound_tag_converter.py
-│   ├── test_tts_service.py
-│   ├── test_tts_service_extended.py
-│   ├── test_voice_cloning.py
-│   └── test_voice_cloning_extended.py
+├── tests/                      # 自动化测试套件（111 个测试，覆盖率 97%）
 ├── docs/                       # 项目文档（Word 格式）
 │   ├── FEASIBILITY_RESEARCH_REPORT.docx
 │   ├── PRODUCT_SPEC.docx
@@ -142,6 +150,7 @@ Emotions-System/
 │   └── architecture.png
 ├── pyproject.toml              # 项目配置和依赖
 ├── Dockerfile                  # Docker 容器化配置
+├── docker-compose.yml          # Docker Compose 编排
 ├── .github/workflows/ci.yml    # GitHub Actions CI 配置
 ├── .env.example                # 环境变量模板
 └── .gitignore

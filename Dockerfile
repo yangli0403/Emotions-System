@@ -2,9 +2,10 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies (curl for healthcheck)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
@@ -15,7 +16,7 @@ RUN pip install --no-cache-dir .
 COPY . .
 
 # Create data directories
-RUN mkdir -p data/uploads data/output data/voice_configs
+RUN mkdir -p data/uploads data/output
 
 # Expose the default port
 EXPOSE 8000

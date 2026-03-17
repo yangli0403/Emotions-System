@@ -18,12 +18,16 @@ env/
 *.swp
 *.swo
 
-# Environment variables
+# Environment variables (包含 API Key，不可提交)
 .env
 
-# Data files
-data/uploads/
+# Data files (运行时生成的数据)
+data/uploads/*
+data/output/*
 data/voice_configs.json
+!data/.gitkeep
+!data/uploads/.gitkeep
+!data/output/.gitkeep
 
 # OS
 .DS_Store
