@@ -1,0 +1,33 @@
+version: "3.8"
+
+services:
+  emotions-system:
+    build: .
+    container_name: emotions-system
+    ports:
+      - "${SERVER_PORT:-8000}:8000"
+    environment:
+      - LLM_API_KEY=${LLM_API_KEY}
+      - LLM_BASE_URL=${LLM_BASE_URL:-https://api.openai.com/v1}
+      - LLM_MODEL=${LLM_MODEL:-gpt-4}
+      - LLM_TEMPERATURE=${LLM_TEMPERATURE:-0.7}
+      - LLM_MAX_TOKENS=${LLM_MAX_TOKENS:-1024}
+      - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY}
+      - TTS_MODEL=${TTS_MODEL:-cosyvoice-v2}
+      - TTS_DEFAULT_VOICE=${TTS_DEFAULT_VOICE:-longxiaochun}
+      - VOICE_CONFIG_PATH=/app/data/voice_configs.json
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=8000
+    volumes:
+      - emotions-data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  emotions-data:
+    driver: local
