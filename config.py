@@ -2,6 +2,7 @@
 Emotions-System — 配置管理
 
 从环境变量或 .env 文件加载系统配置。
+支持多种 LLM 后端：openai、ark（字节火山引擎）。
 """
 
 from __future__ import annotations
@@ -13,6 +14,7 @@ from dataclasses import dataclass, field
 @dataclass
 class LLMConfig:
     """LLM 服务配置。"""
+    backend: str = "openai"  # "openai" 或 "ark"
     api_key: str = ""
     base_url: str = "https://api.openai.com/v1"
     model: str = "gpt-4"
@@ -22,6 +24,7 @@ class LLMConfig:
     @classmethod
     def from_env(cls) -> "LLMConfig":
         return cls(
+            backend=os.getenv("LLM_BACKEND", "openai"),
             api_key=os.getenv("LLM_API_KEY", ""),
             base_url=os.getenv("LLM_BASE_URL", "https://api.openai.com/v1"),
             model=os.getenv("LLM_MODEL", "gpt-4"),

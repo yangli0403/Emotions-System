@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emotions-System 测试面板</title>
+    <style>
+        :root {
+            --bg: #0f1117;
+            --surface: #1a1d27;
+            --surface2: #242836;
+            --border: #2e3348;
+            --text: #e4e6f0;
+            --text2: #8b8fa8;
+            --primary: #6c5ce7;
+            --primary-light: #a29bfe;
+            --success: #00b894;
+            --warning: #fdcb6e;
+            --danger: #e17055;
+            --happy: #fdcb6e;
+            --sad: #74b9ff;
+            --angry: #e17055;
+            --surprised: #fd79a8;
+            --fearful: #a29bfe;
+            --disgusted: #00b894;
+            --neutral: #636e72;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+        .header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
+            background: linear-gradient(135deg, var(--primary-light), var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--text2);
+        }
+        .status-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--danger);
+        }
+        .status-dot.connected { background: var(--success); }
+        .main {
+            display: grid;
+            grid-template-columns: 1fr 360px;
+            height: calc(100vh - 57px);
+        }
+        .chat-area {
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border);
+        }
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .msg {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.6;
+            word-break: break-word;
+        }
+        .msg.user {
+            align-self: flex-end;
+            background: var(--primary);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        .msg.assistant {
+            align-self: flex-start;
+            background: var(--surface2);
+            border-bottom-left-radius: 4px;
+        }
+        .msg .emotion-badge {
+            display: inline-block;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-bottom: 6px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .msg .actions-list {
+            margin-top: 6px;
+            font-size: 12px;
+            color: var(--text2);
+        }
+        .msg .audio-player {
+            margin-top: 8px;
+        }
+        .msg .audio-player audio {
+            width: 100%;
+            height: 32px;
+        }
+        .input-area {
+            padding: 16px 20px;
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 12px;
+        }
+        .input-area input {
+            flex: 1;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 16px;
+            color: var(--text);
+            font-size: 14px;
+            outline: none;
+        }
+        .input-area input:focus { border-color: var(--primary); }
+        .input-area input::placeholder { color: var(--text2); }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        .btn-primary:hover { background: var(--primary-light); }
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .btn-secondary {
+            background: var(--surface2);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+        .btn-secondary:hover { background: var(--border); }
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        .panel {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+        .panel h3 {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text2);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+        .tts-form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .tts-form textarea, .tts-form input, .tts-form select {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: var(--text);
+            font-size: 13px;
+            outline: none;
+            font-family: inherit;
+        }
+        .tts-form textarea { resize: vertical; min-height: 60px; }
+        .tts-form textarea:focus, .tts-form input:focus { border-color: var(--primary); }
+        .tts-result {
+            margin-top: 8px;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+        .tts-result.success { background: rgba(0,184,148,0.1); color: var(--success); }
+        .tts-result.error { background: rgba(225,112,85,0.1); color: var(--danger); }
+        .voice-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .voice-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: var(--surface2);
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        .voice-item .name { font-weight: 500; }
+        .voice-item .id { font-size: 11px; color: var(--text2); }
+        .voice-item .btn-delete {
+            background: none;
+            border: none;
+            color: var(--danger);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 0 4px;
+        }
+        .log-area {
+            background: var(--surface2);
+            border-radius: 6px;
+            padding: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Fira Code', monospace;
+            font-size: 11px;
+            line-height: 1.5;
+            color: var(--text2);
+        }
+        .log-entry { margin-bottom: 2px; }
+        .log-entry.error { color: var(--danger); }
+        .log-entry.success { color: var(--success); }
+        .log-entry.info { color: var(--primary-light); }
+        .emotion-happy { background: rgba(253,203,110,0.2); color: var(--happy); }
+        .emotion-sad { background: rgba(116,185,255,0.2); color: var(--sad); }
+        .emotion-angry { background: rgba(225,112,85,0.2); color: var(--angry); }
+        .emotion-surprised { background: rgba(253,121,168,0.2); color: var(--surprised); }
+        .emotion-fearful { background: rgba(162,155,254,0.2); color: var(--fearful); }
+        .emotion-disgusted { background: rgba(0,184,148,0.2); color: var(--disgusted); }
+        .emotion-neutral { background: rgba(99,110,114,0.2); color: var(--neutral); }
+        .health-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        .health-card {
+            background: var(--surface2);
+            border-radius: 6px;
+            padding: 10px;
+            text-align: center;
+        }
+        .health-card .label { font-size: 11px; color: var(--text2); }
+        .health-card .value { font-size: 16px; font-weight: 600; margin-top: 4px; }
+        .health-card .value.ok { color: var(--success); }
+        .health-card .value.err { color: var(--danger); }
+        @media (max-width: 900px) {
+            .main { grid-template-columns: 1fr; }
+            .sidebar { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Emotions-System 测试面板</h1>
+        <div class="status-badge">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="statusText">未连接</span>
+        </div>
+    </div>
+    <div class="main">
+        <div class="chat-area">
+            <div class="messages" id="messages"></div>
+            <div class="input-area">
+                <input type="text" id="chatInput" placeholder="输入消息..." autocomplete="off">
+                <button class="btn btn-primary" id="sendBtn" onclick="sendMessage()">发送</button>
+                <button class="btn btn-secondary" onclick="clearChat()">清空</button>
+            </div>
+        </div>
+        <div class="sidebar">
+            <!-- Health Check -->
+            <div class="panel">
+                <h3>系统状态</h3>
+                <div class="health-info">
+                    <div class="health-card">
+                        <div class="label">HTTP 服务</div>
+                        <div class="value" id="healthHttp">--</div>
+                    </div>
+                    <div class="health-card">
+                        <div class="label">WebSocket</div>
+                        <div class="value" id="healthWs">--</div>
+                    </div>
+                    <div class="health-card">
+                        <div class="label">消息数</div>
+                        <div class="value" id="msgCount">0</div>
+                    </div>
+                    <div class="health-card">
+                        <div class="label">音频段</div>
+                        <div class="value" id="audioCount">0</div>
+                    </div>
+                </div>
+                <button class="btn btn-secondary" style="width:100%;margin-top:10px" onclick="checkHealth()">刷新状态</button>
+            </div>
+
+            <!-- TTS Test -->
+            <div class="panel">
+                <h3>TTS 独立测试</h3>
+                <div class="tts-form">
+                    <textarea id="ttsText" placeholder="输入要合成的文本...">你好世界！今天天气真好！</textarea>
+                    <input id="ttsInstruction" placeholder="情感指令（如：用开心的语气说话）" value="用开心愉悦的语气说话，带着笑意">
+                    <select id="ttsVoice">
+                        <option value="">默认音色</option>
+                        <option value="longxiaochun">龙小淳</option>
+                        <option value="longyuan">龙远</option>
+                        <option value="longhua">龙华</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="testTTS()">合成音频</button>
+                    <div id="ttsResult"></div>
+                    <div id="ttsAudio"></div>
+                </div>
+            </div>
+
+            <!-- Voice Clone Management -->
+            <div class="panel">
+                <h3>复刻音色管理</h3>
+                <div class="voice-list" id="voiceList">
+                    <div style="color:var(--text2);font-size:13px">加载中...</div>
+                </div>
+                <button class="btn btn-secondary" style="width:100%;margin-top:10px" onclick="loadVoices()">刷新列表</button>
+            </div>
+
+            <!-- Logs -->
+            <div class="panel">
+                <h3>实时日志</h3>
+                <div class="log-area" id="logArea"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const BASE_URL = window.location.origin;
+        const WS_URL = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`;
+        let ws = null;
+        let msgCount = 0;
+        let audioCount = 0;
+        let currentAssistantMsg = null;
+
+        // ===== Logging =====
+        function addLog(text, type = '') {
+            const area = document.getElementById('logArea');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            const time = new Date().toLocaleTimeString();
+            entry.textContent = `[${time}] ${text}`;
+            area.appendChild(entry);
+            area.scrollTop = area.scrollHeight;
+        }
+
+        // ===== WebSocket =====
+        function connectWS() {
+            addLog(`连接 WebSocket: ${WS_URL}`, 'info');
+            ws = new WebSocket(WS_URL);
+
+            ws.onopen = () => {
+                document.getElementById('statusDot').classList.add('connected');
+                document.getElementById('statusText').textContent = '已连接';
+                document.getElementById('healthWs').textContent = 'OK';
+                document.getElementById('healthWs').className = 'value ok';
+                addLog('WebSocket 已连接', 'success');
+            };
+
+            ws.onclose = () => {
+                document.getElementById('statusDot').classList.remove('connected');
+                document.getElementById('statusText').textContent = '已断开';
+                document.getElementById('healthWs').textContent = '断开';
+                document.getElementById('healthWs').className = 'value err';
+                addLog('WebSocket 已断开，3秒后重连...', 'error');
+                setTimeout(connectWS, 3000);
+            };
+
+            ws.onerror = (e) => {
+                addLog(`WebSocket 错误: ${e.type}`, 'error');
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                handleWSMessage(data);
+            };
+        }
+
+        function handleWSMessage(data) {
+            addLog(`收到消息: type=${data.type}, emotion=${data.emotion || 'N/A'}`, 'info');
+
+            if (data.type === 'audio') {
+                msgCount++;
+                document.getElementById('msgCount').textContent = msgCount;
+
+                // Create or append to assistant message
+                if (!currentAssistantMsg) {
+                    currentAssistantMsg = addAssistantMessage('', data.emotion);
+                }
+
+                // Append text
+                const textEl = currentAssistantMsg.querySelector('.msg-text');
+                textEl.textContent += data.text || '';
+
+                // Update emotion badge
+                if (data.emotion && data.emotion !== 'neutral') {
+                    let badge = currentAssistantMsg.querySelector('.emotion-badge');
+                    if (!badge) {
+                        badge = document.createElement('div');
+                        badge.className = `emotion-badge emotion-${data.emotion}`;
+                        currentAssistantMsg.insertBefore(badge, textEl);
+                    }
+                    badge.textContent = data.emotion;
+                    badge.className = `emotion-badge emotion-${data.emotion}`;
+                }
+
+                // Add audio player if audio data present
+                if (data.audio) {
+                    audioCount++;
+                    document.getElementById('audioCount').textContent = audioCount;
+                    const audioContainer = currentAssistantMsg.querySelector('.audio-container');
+                    const playerDiv = document.createElement('div');
+                    playerDiv.className = 'audio-player';
+                    const audio = document.createElement('audio');
+                    audio.controls = true;
+                    audio.src = `data:audio/wav;base64,${data.audio}`;
+                    playerDiv.appendChild(audio);
+                    audioContainer.appendChild(playerDiv);
+                }
+
+                // Show actions
+                if (data.actions && data.actions.length > 0) {
+                    let actionsEl = currentAssistantMsg.querySelector('.actions-list');
+                    if (!actionsEl) {
+                        actionsEl = document.createElement('div');
+                        actionsEl.className = 'actions-list';
+                        currentAssistantMsg.appendChild(actionsEl);
+                    }
+                    actionsEl.textContent = `动作: ${data.actions.join(', ')}`;
+                }
+
+                scrollToBottom();
+            } else if (data.type === 'end') {
+                currentAssistantMsg = null;
+                addLog('对话回合结束', 'success');
+                document.getElementById('sendBtn').disabled = false;
+            } else if (data.type === 'error') {
+                addLog(`错误: ${data.message}`, 'error');
+                addErrorMessage(data.message);
+                currentAssistantMsg = null;
+                document.getElementById('sendBtn').disabled = false;
+            } else if (data.type === 'info') {
+                addLog(`信息: ${data.message}`, 'info');
+            }
+        }
+
+        // ===== Chat UI =====
+        function addUserMessage(text) {
+            const div = document.createElement('div');
+            div.className = 'msg user';
+            div.textContent = text;
+            document.getElementById('messages').appendChild(div);
+            scrollToBottom();
+        }
+
+        function addAssistantMessage(text, emotion) {
+            const div = document.createElement('div');
+            div.className = 'msg assistant';
+            const textEl = document.createElement('div');
+            textEl.className = 'msg-text';
+            textEl.textContent = text;
+            div.appendChild(textEl);
+            const audioContainer = document.createElement('div');
+            audioContainer.className = 'audio-container';
+            div.appendChild(audioContainer);
+            document.getElementById('messages').appendChild(div);
+            scrollToBottom();
+            return div;
+        }
+
+        function addErrorMessage(text) {
+            const div = document.createElement('div');
+            div.className = 'msg assistant';
+            div.style.borderLeft = '3px solid var(--danger)';
+            div.textContent = `[错误] ${text}`;
+            document.getElementById('messages').appendChild(div);
+            scrollToBottom();
+        }
+
+        function scrollToBottom() {
+            const el = document.getElementById('messages');
+            el.scrollTop = el.scrollHeight;
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const text = input.value.trim();
+            if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
+
+            addUserMessage(text);
+            ws.send(JSON.stringify({ text }));
+            input.value = '';
+            document.getElementById('sendBtn').disabled = true;
+            addLog(`发送消息: ${text.substring(0, 50)}...`, 'info');
+        }
+
+        function clearChat() {
+            document.getElementById('messages').innerHTML = '';
+            currentAssistantMsg = null;
+            msgCount = 0;
+            audioCount = 0;
+            document.getElementById('msgCount').textContent = '0';
+            document.getElementById('audioCount').textContent = '0';
+        }
+
+        // ===== Health Check =====
+        async function checkHealth() {
+            try {
+                const resp = await fetch(`${BASE_URL}/health`);
+                const data = await resp.json();
+                document.getElementById('healthHttp').textContent = data.status === 'ok' ? 'OK' : 'ERR';
+                document.getElementById('healthHttp').className = `value ${data.status === 'ok' ? 'ok' : 'err'}`;
+                addLog(`健康检查: ${JSON.stringify(data)}`, 'success');
+            } catch (e) {
+                document.getElementById('healthHttp').textContent = 'ERR';
+                document.getElementById('healthHttp').className = 'value err';
+                addLog(`健康检查失败: ${e.message}`, 'error');
+            }
+        }
+
+        // ===== TTS Test =====
+        async function testTTS() {
+            const text = document.getElementById('ttsText').value.trim();
+            const instruction = document.getElementById('ttsInstruction').value.trim();
+            const voice = document.getElementById('ttsVoice').value;
+            const resultDiv = document.getElementById('ttsResult');
+            const audioDiv = document.getElementById('ttsAudio');
+
+            if (!text) {
+                resultDiv.className = 'tts-result error';
+                resultDiv.textContent = '请输入文本';
+                return;
+            }
+
+            resultDiv.className = 'tts-result';
+            resultDiv.textContent = '合成中...';
+            audioDiv.innerHTML = '';
+            addLog(`TTS 合成请求: text=${text.substring(0, 30)}...`, 'info');
+
+            try {
+                const formData = new FormData();
+                formData.append('text', text);
+                formData.append('emotion_instruction', instruction);
+                formData.append('voice_id', voice);
+
+                const resp = await fetch(`${BASE_URL}/api/tts/synthesize`, {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (resp.ok) {
+                    const blob = await resp.blob();
+                    const url = URL.createObjectURL(blob);
+                    resultDiv.className = 'tts-result success';
+                    resultDiv.textContent = `合成成功: ${(blob.size / 1024).toFixed(1)} KB`;
+                    audioDiv.innerHTML = `<audio controls src="${url}" style="width:100%;margin-top:8px"></audio>`;
+                    addLog(`TTS 合成成功: ${blob.size} bytes`, 'success');
+                } else {
+                    const err = await resp.json();
+                    resultDiv.className = 'tts-result error';
+                    resultDiv.textContent = `合成失败: ${err.error}`;
+                    addLog(`TTS 合成失败: ${err.error}`, 'error');
+                }
+            } catch (e) {
+                resultDiv.className = 'tts-result error';
+                resultDiv.textContent = `请求失败: ${e.message}`;
+                addLog(`TTS 请求失败: ${e.message}`, 'error');
+            }
+        }
+
+        // ===== Voice Management =====
+        async function loadVoices() {
+            const listDiv = document.getElementById('voiceList');
+            try {
+                const resp = await fetch(`${BASE_URL}/api/voice/list`);
+                const data = await resp.json();
+                if (data.voices && data.voices.length > 0) {
+                    listDiv.innerHTML = data.voices.map(v => `
+                        <div class="voice-item">
+                            <div>
+                                <div class="name">${v.name}</div>
+                                <div class="id">${v.voice_id}</div>
+                            </div>
+                            <button class="btn-delete" onclick="deleteVoice('${v.voice_id}')" title="删除">&times;</button>
+                        </div>
+                    `).join('');
+                } else {
+                    listDiv.innerHTML = '<div style="color:var(--text2);font-size:13px">暂无复刻音色</div>';
+                }
+                addLog(`加载音色列表: ${data.voices ? data.voices.length : 0} 个`, 'success');
+            } catch (e) {
+                listDiv.innerHTML = '<div style="color:var(--danger);font-size:13px">加载失败</div>';
+                addLog(`加载音色列表失败: ${e.message}`, 'error');
+            }
+        }
+
+        async function deleteVoice(voiceId) {
+            if (!confirm(`确认删除音色 ${voiceId}？`)) return;
+            try {
+                const resp = await fetch(`${BASE_URL}/api/voice/${voiceId}`, { method: 'DELETE' });
+                if (resp.ok) {
+                    addLog(`删除音色成功: ${voiceId}`, 'success');
+                    loadVoices();
+                } else {
+                    addLog(`删除音色失败`, 'error');
+                }
+            } catch (e) {
+                addLog(`删除请求失败: ${e.message}`, 'error');
+            }
+        }
+
+        // ===== Init =====
+        document.getElementById('chatInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        connectWS();
+        checkHealth();
+        loadVoices();
+    </script>
+</body>
+</html>

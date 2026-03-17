@@ -4,7 +4,7 @@ Emotions-System — CosyVoice TTS 服务实现
 基于阿里百炼 DashScope SDK 的 CosyVoice 语音合成服务。
 支持：
 - 情感自然语言指令控制（instruction）
-- 双向流式合成
+- 双向流式合成（基于 ResultCallback）
 - 复刻音色调用
 - [laughter] / [breath] 内生标记
 """
@@ -12,9 +12,9 @@ Emotions-System — CosyVoice TTS 服务实现
 from __future__ import annotations
 
 import asyncio
-import io
 import logging
-from typing import AsyncIterator, Dict, Optional
+import threading
+from typing import AsyncIterator, Dict, List, Optional
 
 from core.interfaces import ITTSService
 
@@ -43,7 +43,7 @@ class CosyVoiceTTSService(ITTSService):
     def __init__(
         self,
         api_key: str = "",
-        model: str = "cosyvoice-v2",
+        model: str = "cosyvoice-v1",
         default_voice: str = "longxiaochun",
     ) -> None:
         """初始化 CosyVoice TTS 服务。
@@ -56,7 +56,6 @@ class CosyVoiceTTSService(ITTSService):
         self.api_key = api_key
         self.model = model
         self.default_voice = default_voice
-        self._synthesizer = None
         logger.info(
             f"CosyVoice TTS 服务初始化: model={model}, "
             f"default_voice={default_voice}"
@@ -93,7 +92,7 @@ class CosyVoiceTTSService(ITTSService):
     ) -> AsyncIterator[bytes]:
         """双向流式合成语音。
 
-        使用 DashScope SDK 的 SpeechSynthesizer 进行流式合成。
+        使用 DashScope SDK 的 SpeechSynthesizer + ResultCallback 进行流式合成。
         文本中可包含 [laughter]、[breath] 等 CosyVoice 内生标记。
 
         Args:
@@ -119,38 +118,85 @@ class CosyVoiceTTSService(ITTSService):
 
         try:
             import dashscope
-            from dashscope.audio.tts_v2 import SpeechSynthesizer, AudioFormat
+            from dashscope.audio.tts_v2 import (
+                SpeechSynthesizer,
+                AudioFormat,
+                ResultCallback,
+            )
 
             if self.api_key:
                 dashscope.api_key = self.api_key
 
-            # 使用双向流式合成
+            # 使用 ResultCallback 收集音频数据
+            class _AudioCollector(ResultCallback):
+                def __init__(self):
+                    self.audio_chunks: List[bytes] = []
+                    self.error: Optional[str] = None
+                    self.completed = threading.Event()
+
+                def on_open(self):
+                    logger.debug("CosyVoice 流已打开")
+
+                def on_data(self, data, **kwargs):
+                    if data:
+                        self.audio_chunks.append(data)
+
+                def on_complete(self):
+                    logger.debug("CosyVoice 流已完成")
+                    self.completed.set()
+
+                def on_error(self, message, **kwargs):
+                    self.error = str(message)
+                    logger.error(f"CosyVoice 流错误: {message}")
+                    self.completed.set()
+
+                def on_close(self):
+                    logger.debug("CosyVoice 流已关闭")
+                    self.completed.set()
+
+                def on_event(self, message, **kwargs):
+                    pass
+
+            collector = _AudioCollector()
+
             synthesizer = SpeechSynthesizer(
                 model=self.model,
                 voice=voice,
                 format=AudioFormat.WAV_22050HZ_MONO_16BIT,
                 instruction=instruction,
+                callback=collector,
             )
 
             # 分片发送文本以实现流式效果
-            # CosyVoice 支持 streaming_call 逐步发送文本
-            chunk_size = 20  # 每次发送约20个字符
+            chunk_size = 20
             text_chunks = [
                 text[i:i + chunk_size]
                 for i in range(0, len(text), chunk_size)
             ]
 
-            for i, chunk in enumerate(text_chunks):
+            for chunk in text_chunks:
                 synthesizer.streaming_call(chunk)
                 await asyncio.sleep(0)  # 让出事件循环
 
-            # 完成发送，获取剩余音频
-            audio_data = synthesizer.streaming_complete()
+            # 完成发送
+            synthesizer.streaming_complete()
 
-            if audio_data:
+            # 等待回调完成
+            collector.completed.wait(timeout=30)
+
+            if collector.error:
+                logger.error(f"CosyVoice 合成错误: {collector.error}")
+                raise RuntimeError(
+                    f"CosyVoice 合成失败: {collector.error}"
+                )
+
+            # 合并所有音频块
+            if collector.audio_chunks:
+                audio_data = b"".join(collector.audio_chunks)
                 yield audio_data
                 logger.info(
-                    f"CosyVoice 合成完成: {len(audio_data)} bytes"
+                    f"CosyVoice 合成完成: {len(audio_data)} bytes, "
+                    f"{len(collector.audio_chunks)} chunks"
                 )
             else:
                 logger.warning("CosyVoice 合成返回空音频")
@@ -160,6 +206,8 @@ class CosyVoiceTTSService(ITTSService):
                 "dashscope 未安装，请执行: pip install dashscope"
             )
             raise RuntimeError("dashscope SDK 未安装")
+        except RuntimeError:
+            raise
         except Exception as e:
             logger.error(f"CosyVoice 合成失败: {e}", exc_info=True)
             raise RuntimeError(f"CosyVoice 合成失败: {e}") from e
@@ -196,12 +244,9 @@ class CosyVoiceTTSService(ITTSService):
     ) -> str:
         """合成语音并保存为独立的音频文件。
 
-        这是一个便捷方法，将合成结果直接写入指定路径的文件。
-        适用于批量生成测试样例、离线合成等场景。
-
         Args:
             text: 要合成的文本（可包含 [laughter]、[breath] 等标记）。
-            output_path: 输出音频文件的完整路径（如 output/test.wav）。
+            output_path: 输出音频文件的完整路径。
             emotion_instruction: 情感自然语言指令。
             voice_id: 复刻音色 ID 或系统内置音色 ID。
 
@@ -220,7 +265,6 @@ class CosyVoiceTTSService(ITTSService):
         if not audio_data:
             raise RuntimeError(f"合成结果为空，无法保存文件: {output_path}")
 
-        # 确保输出目录存在
         out = Path(output_path)
         out.parent.mkdir(parents=True, exist_ok=True)
 

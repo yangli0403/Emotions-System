@@ -2,9 +2,14 @@
 Emotions-System — 主入口
 
 FastAPI 应用，提供 WebSocket 和 REST API 接口。
+支持多种 LLM 后端：OpenAI 兼容 API、字节火山引擎 Ark SDK。
 """
 
 from __future__ import annotations
+
+import os
+from dotenv import load_dotenv
+load_dotenv()  # 加载 .env 文件
 
 import json
 import logging
@@ -15,9 +20,11 @@ from typing import Optional
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, Form
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 
 from config import AppConfig
-from services.llm_service import OpenAILLMService
+from services.llm_service import OpenAILLMService, ArkLLMService
 from services.tts_service import CosyVoiceTTSService
 from services.voice_cloning_service import DashScopeVoiceCloningService
 from services.action_parser import ActionParser
@@ -50,14 +57,24 @@ async def lifespan(app: FastAPI):
     # 加载配置
     config = AppConfig.from_env()
 
-    # 初始化各服务
-    llm_service = OpenAILLMService(
-        api_key=config.llm.api_key,
-        base_url=config.llm.base_url,
-        model=config.llm.model,
-        temperature=config.llm.temperature,
-        max_tokens=config.llm.max_tokens,
-    )
+    # 根据 backend 类型初始化 LLM 服务
+    if config.llm.backend == "ark":
+        logger.info("使用字节火山引擎 Ark SDK 作为 LLM 后端")
+        llm_service = ArkLLMService(
+            api_key=config.llm.api_key,
+            model=config.llm.model,
+            temperature=config.llm.temperature,
+            max_tokens=config.llm.max_tokens,
+        )
+    else:
+        logger.info("使用 OpenAI 兼容 API 作为 LLM 后端")
+        llm_service = OpenAILLMService(
+            api_key=config.llm.api_key,
+            base_url=config.llm.base_url,
+            model=config.llm.model,
+            temperature=config.llm.temperature,
+            max_tokens=config.llm.max_tokens,
+        )
 
     tts_service = CosyVoiceTTSService(
         api_key=config.tts.api_key,
@@ -100,6 +117,15 @@ app = FastAPI(
     description="情感驱动的多模态语音合成系统",
     version="1.0.0",
     lifespan=lifespan,
+)
+
+# 添加 CORS 中间件
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -151,19 +177,13 @@ async def clone_voice(
     audio: UploadFile = File(...),
     name: str = Form(...),
 ):
-    """上传音频并创建复刻音色。
-
-    Args:
-        audio: 参考音频文件（WAV/MP3，3-10秒清晰人声）。
-        name: 自定义音色名称。
-    """
+    """上传音频并创建复刻音色。"""
     if not voice_cloning_service:
         return JSONResponse(
             status_code=503,
             content={"error": "声音复刻服务未初始化"},
         )
 
-    # 保存上传的音频到临时文件
     upload_dir = Path("data/uploads")
     upload_dir.mkdir(parents=True, exist_ok=True)
     temp_path = upload_dir / f"{uuid.uuid4()}{Path(audio.filename).suffix}"
@@ -173,7 +193,6 @@ async def clone_voice(
         with open(temp_path, "wb") as f:
             f.write(content)
 
-        # 调用复刻服务
         config = await voice_cloning_service.clone_voice(
             str(temp_path), name
         )
@@ -239,13 +258,7 @@ async def synthesize_audio(
     emotion_instruction: str = Form(""),
     voice_id: str = Form(""),
 ):
-    """单独合成一段音频并返回 WAV 文件。
-
-    Args:
-        text: 要合成的文本（可包含 [laughter]、[breath] 等标记）。
-        emotion_instruction: 情感自然语言指令（如“用开心的语气说话”）。
-        voice_id: 音色 ID（复刻音色或系统内置音色）。
-    """
+    """单独合成一段音频并返回 WAV 文件。"""
     from fastapi.responses import Response
 
     if not tts_service:
@@ -286,14 +299,7 @@ async def synthesize_to_file(
     emotion_instruction: str = Form(""),
     voice_id: str = Form(""),
 ):
-    """合成音频并保存到服务器本地文件。
-
-    Args:
-        text: 要合成的文本。
-        output_filename: 输出文件名（保存在 data/output/ 目录下）。
-        emotion_instruction: 情感自然语言指令。
-        voice_id: 音色 ID。
-    """
+    """合成音频并保存到服务器本地文件。"""
     if not tts_service:
         return JSONResponse(
             status_code=503,
@@ -323,3 +329,9 @@ async def synthesize_to_file(
 async def health_check():
     """健康检查端点。"""
     return {"status": "ok", "service": "Emotions-System"}
+
+
+# 挂载静态文件目录（Web 测试前端）
+static_dir = Path(__file__).parent / "static"
+if static_dir.exists():
+    app.mount("/", StaticFiles(directory=str(static_dir), html=True), name="static")

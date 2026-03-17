@@ -1,7 +1,10 @@
 """
 Emotions-System — 大语言模型 (LLM) 服务实现
 
-支持 OpenAI 兼容 API 的 LLM 服务，支持流式输出。
+支持多种 LLM 后端：
+- OpenAI 兼容 API（OpenAI、Ollama 等）
+- 字节跳动火山引擎 Ark SDK（DeepSeek、豆包等）
+
 系统提示词已升级为复合情感标签格式：
 [emotion:基础枚举|instruction:自然语言指令]
 """
@@ -10,8 +13,6 @@ from __future__ import annotations
 
 import logging
 from typing import AsyncIterator, List
-
-from openai import AsyncOpenAI
 
 from core.interfaces import ILLMService
 
@@ -33,28 +34,22 @@ class OpenAILLMService(ILLMService):
         max_tokens: int = 1024,
         system_prompt: str = "",
     ) -> None:
+        from openai import AsyncOpenAI
+
         self.model = model
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.system_prompt = system_prompt or self._default_system_prompt()
         self.client = AsyncOpenAI(api_key=api_key, base_url=base_url)
         logger.info(
-            f"LLM 服务初始化: model={model}, base_url={base_url}, "
+            f"LLM 服务初始化 (OpenAI): model={model}, base_url={base_url}, "
             f"temperature={temperature}"
         )
 
     async def generate_response_stream(
         self, prompt: str, history: List[dict]
     ) -> AsyncIterator[str]:
-        """流式生成带有复合情感标签的回复文本。
-
-        Args:
-            prompt: 用户当前输入。
-            history: 对话历史。
-
-        Yields:
-            LLM 逐步生成的文本 Token。
-        """
+        """流式生成带有复合情感标签的回复文本。"""
         messages = [{"role": "system", "content": self.system_prompt}]
         messages.extend(history)
         messages.append({"role": "user", "content": prompt})
@@ -123,3 +118,65 @@ class OpenAILLMService(ILLMService):
             "[locomotion:step_back]哇，真的吗？[sound:gasp]太不可思议了！\n\n"
             "请在每句话开头使用情感标签，在合适位置插入动作和音效标签。"
         )
+
+
+class ArkLLMService(ILLMService):
+    """基于字节跳动火山引擎 Ark SDK 的 LLM 服务实现。
+
+    支持 DeepSeek、豆包等通过火山引擎部署的模型。
+    """
+
+    def __init__(
+        self,
+        api_key: str = "",
+        model: str = "ep-20250811200411-zctsd",
+        temperature: float = 0.7,
+        max_tokens: int = 1024,
+        system_prompt: str = "",
+    ) -> None:
+        from volcenginesdkarkruntime import AsyncArk
+
+        self.model = model
+        self.temperature = temperature
+        self.max_tokens = max_tokens
+        self.system_prompt = system_prompt or OpenAILLMService._default_system_prompt()
+        self.client = AsyncArk(api_key=api_key)
+        logger.info(
+            f"LLM 服务初始化 (Ark): model={model}, "
+            f"temperature={temperature}"
+        )
+
+    async def generate_response_stream(
+        self, prompt: str, history: List[dict]
+    ) -> AsyncIterator[str]:
+        """流式生成带有复合情感标签的回复文本。"""
+        messages = [{"role": "system", "content": self.system_prompt}]
+        messages.extend(history)
+        messages.append({"role": "user", "content": prompt})
+
+        logger.info(
+            f"LLM 流式生成请求 (Ark): model={self.model}, "
+            f"messages_count={len(messages)}"
+        )
+
+        try:
+            stream = await self.client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                temperature=self.temperature,
+                max_tokens=self.max_tokens,
+                stream=True,
+            )
+
+            total_tokens = 0
+            async for chunk in stream:
+                if chunk.choices and chunk.choices[0].delta.content:
+                    token = chunk.choices[0].delta.content
+                    total_tokens += 1
+                    yield token
+
+            logger.info(f"LLM 流式生成完成 (Ark): {total_tokens} tokens")
+
+        except Exception as e:
+            logger.error(f"LLM 流式生成失败 (Ark): {e}", exc_info=True)
+            raise RuntimeError(f"LLM 流式生成失败: {e}") from e
