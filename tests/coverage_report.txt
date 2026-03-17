@@ -1,0 +1,144 @@
+============================= test session starts ==============================
+platform linux -- Python 3.11.0rc1, pytest-9.0.2, pluggy-1.6.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/ubuntu/Emotions-System
+configfile: pyproject.toml
+plugins: anyio-4.11.0, asyncio-1.3.0, cov-7.0.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 111 items
+
+tests/test_action_parser.py::test_simple_emotion_tag PASSED              [  0%]
+tests/test_action_parser.py::test_compound_emotion_tag PASSED            [  1%]
+tests/test_action_parser.py::test_sound_tag PASSED                       [  2%]
+tests/test_action_parser.py::test_multiple_sentences PASSED              [  3%]
+tests/test_action_parser.py::test_action_and_expression_tags PASSED      [  4%]
+tests/test_action_parser.py::test_tag_type_normalization PASSED          [  5%]
+tests/test_action_parser.py::test_no_tags PASSED                         [  6%]
+tests/test_action_parser.py::test_empty_input PASSED                     [  7%]
+tests/test_action_parser.py::test_unknown_tag_ignored PASSED             [  8%]
+tests/test_command_packager.py::test_basic_packaging PASSED              [  9%]
+tests/test_command_packager.py::test_sound_conversion_in_packaging PASSED [  9%]
+tests/test_command_packager.py::test_fallback_inference_triggered PASSED [ 10%]
+tests/test_command_packager.py::test_actions_extracted PASSED            [ 11%]
+tests/test_command_packager.py::test_empty_text_skipped PASSED           [ 12%]
+tests/test_command_packager.py::test_multiple_sentences PASSED           [ 13%]
+tests/test_config.py::test_llm_config_defaults PASSED                    [ 14%]
+tests/test_config.py::test_tts_config_defaults PASSED                    [ 15%]
+tests/test_config.py::test_server_config_defaults PASSED                 [ 16%]
+tests/test_config.py::test_app_config_from_env PASSED                    [ 17%]
+tests/test_config.py::test_voice_clone_config_defaults PASSED            [ 18%]
+tests/test_fallback_inference.py::test_happy_keywords PASSED             [ 18%]
+tests/test_fallback_inference.py::test_sad_keywords PASSED               [ 19%]
+tests/test_fallback_inference.py::test_angry_keywords PASSED             [ 20%]
+tests/test_fallback_inference.py::test_surprised_keywords PASSED         [ 21%]
+tests/test_fallback_inference.py::test_fearful_keywords PASSED           [ 22%]
+tests/test_fallback_inference.py::test_disgusted_keywords PASSED         [ 23%]
+tests/test_fallback_inference.py::test_neutral_no_match PASSED           [ 24%]
+tests/test_fallback_inference.py::test_empty_text PASSED                 [ 25%]
+tests/test_fallback_inference.py::test_whitespace_text PASSED            [ 26%]
+tests/test_fallback_inference.py::test_bert_not_implemented PASSED       [ 27%]
+tests/test_fallback_inference.py::test_segment_aware_not_implemented PASSED [ 27%]
+tests/test_llm_service.py::test_init_defaults PASSED                     [ 28%]
+tests/test_llm_service.py::test_init_custom_params PASSED                [ 29%]
+tests/test_llm_service.py::test_init_custom_system_prompt PASSED         [ 30%]
+tests/test_llm_service.py::test_default_system_prompt_content PASSED     [ 31%]
+tests/test_llm_service.py::test_generate_response_stream_success PASSED  [ 32%]
+tests/test_llm_service.py::test_generate_response_stream_with_history PASSED [ 33%]
+tests/test_llm_service.py::test_generate_response_stream_api_error PASSED [ 34%]
+tests/test_llm_service.py::test_generate_response_stream_empty_delta PASSED [ 35%]
+tests/test_models.py::test_action_tag_defaults PASSED                    [ 36%]
+tests/test_models.py::test_action_tag_with_instruction PASSED            [ 36%]
+tests/test_models.py::test_parsed_sentence_defaults PASSED               [ 37%]
+tests/test_models.py::test_parsed_sentence_with_tags PASSED              [ 38%]
+tests/test_models.py::test_multimodal_segment_defaults PASSED            [ 39%]
+tests/test_models.py::test_multimodal_segment_full PASSED                [ 40%]
+tests/test_models.py::test_voice_clone_config PASSED                     [ 41%]
+tests/test_models.py::test_voice_clone_config_defaults PASSED            [ 42%]
+tests/test_models.py::test_model_serialization PASSED                    [ 43%]
+tests/test_models.py::test_voice_clone_config_serialization PASSED       [ 44%]
+tests/test_orchestrator.py::test_init PASSED                             [ 45%]
+tests/test_orchestrator.py::test_get_history_new_session PASSED          [ 45%]
+tests/test_orchestrator.py::test_get_history_existing_session PASSED     [ 46%]
+tests/test_orchestrator.py::test_clear_history PASSED                    [ 47%]
+tests/test_orchestrator.py::test_clear_history_nonexistent PASSED        [ 48%]
+tests/test_orchestrator.py::test_handle_text_input_empty PASSED          [ 49%]
+tests/test_orchestrator.py::test_handle_text_input_whitespace PASSED     [ 50%]
+tests/test_orchestrator.py::test_handle_text_input_success PASSED        [ 51%]
+tests/test_orchestrator.py::test_handle_text_input_multiple_segments PASSED [ 52%]
+tests/test_orchestrator.py::test_handle_text_input_llm_error PASSED      [ 53%]
+tests/test_orchestrator.py::test_handle_text_input_updates_history PASSED [ 54%]
+tests/test_protocol_adapter.py::test_basic_adaptation PASSED             [ 54%]
+tests/test_protocol_adapter.py::test_audio_base64_encoding PASSED        [ 55%]
+tests/test_protocol_adapter.py::test_empty_audio PASSED                  [ 56%]
+tests/test_protocol_adapter.py::test_actions_categorized PASSED          [ 57%]
+tests/test_protocol_adapter.py::test_is_final_flag PASSED                [ 58%]
+tests/test_protocol_adapter.py::test_no_actions PASSED                   [ 59%]
+tests/test_sound_tag_converter.py::test_laugh_internalized PASSED        [ 60%]
+tests/test_sound_tag_converter.py::test_sigh_internalized PASSED         [ 61%]
+tests/test_sound_tag_converter.py::test_breath_internalized PASSED       [ 62%]
+tests/test_sound_tag_converter.py::test_unsupported_sound_passthrough PASSED [ 63%]
+tests/test_sound_tag_converter.py::test_non_sound_tags_preserved PASSED  [ 63%]
+tests/test_sound_tag_converter.py::test_multiple_sounds PASSED           [ 64%]
+tests/test_sound_tag_converter.py::test_no_tags PASSED                   [ 65%]
+tests/test_tts_service.py::test_init PASSED                              [ 66%]
+tests/test_tts_service.py::test_get_instruction_with_custom PASSED       [ 67%]
+tests/test_tts_service.py::test_get_instruction_fallback PASSED          [ 68%]
+tests/test_tts_service.py::test_get_instruction_unknown_emotion PASSED   [ 69%]
+tests/test_tts_service.py::test_get_instruction_truncation PASSED        [ 70%]
+tests/test_tts_service.py::test_default_emotion_instructions_complete PASSED [ 71%]
+tests/test_tts_service.py::test_synthesize_stream_empty_text PASSED      [ 72%]
+tests/test_tts_service.py::test_synthesize_stream_whitespace PASSED      [ 72%]
+tests/test_tts_service_extended.py::test_synthesize_stream_with_mock_dashscope PASSED [ 73%]
+tests/test_tts_service_extended.py::test_synthesize_stream_empty_audio_result PASSED [ 74%]
+tests/test_tts_service_extended.py::test_synthesize_stream_dashscope_not_installed PASSED [ 75%]
+tests/test_tts_service_extended.py::test_synthesize_stream_api_exception PASSED [ 76%]
+tests/test_tts_service_extended.py::test_synthesize_stream_uses_default_voice PASSED [ 77%]
+tests/test_tts_service_extended.py::test_synthesize_full PASSED          [ 78%]
+tests/test_tts_service_extended.py::test_synthesize_full_empty PASSED    [ 79%]
+tests/test_tts_service_extended.py::test_synthesize_to_file_success PASSED [ 80%]
+tests/test_tts_service_extended.py::test_synthesize_to_file_empty_audio PASSED [ 81%]
+tests/test_tts_service_extended.py::test_synthesize_to_file_creates_directory PASSED [ 81%]
+tests/test_tts_service_extended.py::test_get_instruction_whitespace_only PASSED [ 82%]
+tests/test_tts_service_extended.py::test_get_instruction_with_leading_trailing_spaces PASSED [ 83%]
+tests/test_voice_cloning.py::test_init_empty PASSED                      [ 84%]
+tests/test_voice_cloning.py::test_load_existing_configs PASSED           [ 85%]
+tests/test_voice_cloning.py::test_list_voices PASSED                     [ 86%]
+tests/test_voice_cloning.py::test_get_voice PASSED                       [ 87%]
+tests/test_voice_cloning.py::test_delete_voice PASSED                    [ 88%]
+tests/test_voice_cloning.py::test_validate_audio_nonexistent PASSED      [ 89%]
+tests/test_voice_cloning.py::test_validate_audio_wrong_format PASSED     [ 90%]
+tests/test_voice_cloning_extended.py::test_save_configs PASSED           [ 90%]
+tests/test_voice_cloning_extended.py::test_load_configs_invalid_json PASSED [ 91%]
+tests/test_voice_cloning_extended.py::test_validate_audio_file_too_large PASSED [ 92%]
+tests/test_voice_cloning_extended.py::test_validate_audio_file_valid PASSED [ 93%]
+tests/test_voice_cloning_extended.py::test_validate_audio_supported_formats PASSED [ 94%]
+tests/test_voice_cloning_extended.py::test_clone_voice_with_mock_dashscope PASSED [ 95%]
+tests/test_voice_cloning_extended.py::test_clone_voice_dashscope_not_installed PASSED [ 96%]
+tests/test_voice_cloning_extended.py::test_clone_voice_api_returns_empty_id PASSED [ 97%]
+tests/test_voice_cloning_extended.py::test_clone_voice_invalid_file PASSED [ 98%]
+tests/test_voice_cloning_extended.py::test_delete_voice_and_persist PASSED [ 99%]
+tests/test_voice_cloning_extended.py::test_get_voice_not_found PASSED    [100%]
+
+================================ tests coverage ================================
+_____________ coverage: platform linux, python 3.11.0-candidate-1 ______________
+
+Name                                     Stmts   Miss  Cover   Missing
+----------------------------------------------------------------------
+adapters/__init__.py                         0      0   100%
+adapters/protocol_adapter.py                34      0   100%
+config.py                                   45      0   100%
+core/__init__.py                             3      0   100%
+core/interfaces.py                          26      6    77%   9, 15, 21, 26, 32, 38
+core/models.py                              20      0   100%
+services/__init__.py                         0      0   100%
+services/action_parser.py                   59      3    95%   109-111
+services/command_packager.py                53      4    92%   111-112, 123-124
+services/fallback_inference_service.py      43      1    98%   196
+services/llm_service.py                     34      0   100%
+services/orchestrator.py                    47      0   100%
+services/sound_tag_converter.py             24      0   100%
+services/tts_service.py                     65      0   100%
+services/voice_cloning_service.py           92      4    96%   89-90, 177-178
+----------------------------------------------------------------------
+TOTAL                                      545     18    97%
+============================= 111 passed in 1.63s ==============================
