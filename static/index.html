@@ -62,7 +62,7 @@
         .status-dot.connected { background: var(--success); }
         .main {
             display: grid;
-            grid-template-columns: 1fr 360px;
+            grid-template-columns: 1fr 400px;
             height: calc(100vh - 57px);
         }
         .chat-area {
@@ -161,6 +161,15 @@
             border: 1px solid var(--border);
         }
         .btn-secondary:hover { background: var(--border); }
+        .btn-compare {
+            background: linear-gradient(135deg, #6c5ce7, #e17055);
+            color: white;
+        }
+        .btn-compare:hover { opacity: 0.9; }
+        .btn-compare:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
         .sidebar {
             display: flex;
             flex-direction: column;
@@ -264,6 +273,128 @@
         .health-card .value { font-size: 16px; font-weight: 600; margin-top: 4px; }
         .health-card .value.ok { color: var(--success); }
         .health-card .value.err { color: var(--danger); }
+
+        /* === 模型切换开关样式 === */
+        .model-switch {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .model-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            background: var(--surface2);
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .model-option:hover {
+            border-color: var(--primary);
+        }
+        .model-option.active {
+            border-color: var(--primary);
+            background: rgba(108, 92, 231, 0.1);
+        }
+        .model-option input[type="radio"] {
+            accent-color: var(--primary);
+            width: 16px;
+            height: 16px;
+        }
+        .model-option .model-info {
+            flex: 1;
+        }
+        .model-option .model-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+        }
+        .model-option .model-desc {
+            font-size: 11px;
+            color: var(--text2);
+            margin-top: 2px;
+        }
+        .model-tag {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        .model-tag.default { background: rgba(0,184,148,0.2); color: var(--success); }
+        .model-tag.new { background: rgba(253,121,168,0.2); color: var(--surprised); }
+        .model-tag.warn { background: rgba(253,203,110,0.2); color: var(--warning); }
+
+        /* === 对比面板样式 === */
+        .compare-results {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .compare-item {
+            background: var(--surface2);
+            border-radius: 8px;
+            padding: 12px;
+            border-left: 3px solid var(--primary);
+        }
+        .compare-item.item-b {
+            border-left-color: var(--danger);
+        }
+        .compare-item .compare-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text2);
+            text-transform: uppercase;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .compare-item .compare-label .model-badge {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: rgba(108, 92, 231, 0.2);
+            color: var(--primary-light);
+        }
+        .compare-item.item-b .compare-label .model-badge {
+            background: rgba(225, 112, 85, 0.2);
+            color: var(--danger);
+        }
+        .compare-item .compare-status {
+            font-size: 12px;
+            color: var(--text2);
+        }
+        .compare-item audio {
+            width: 100%;
+            height: 32px;
+            margin-top: 6px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+        }
+        .btn-group .btn {
+            flex: 1;
+        }
+
+        .voice-select-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .voice-select-row select {
+            flex: 1;
+        }
+        .voice-select-row .voice-hint {
+            font-size: 10px;
+            color: var(--warning);
+            white-space: nowrap;
+        }
+
         @media (max-width: 900px) {
             .main { grid-template-columns: 1fr; }
             .sidebar { display: none; }
@@ -312,21 +443,64 @@
                 <button class="btn btn-secondary" style="width:100%;margin-top:10px" onclick="checkHealth()">刷新状态</button>
             </div>
 
+            <!-- Model Version Switch -->
+            <div class="panel">
+                <h3>TTS 模型版本切换</h3>
+                <div class="model-switch" id="modelSwitch">
+                    <label class="model-option active" data-model="cosyvoice-v1">
+                        <input type="radio" name="ttsModel" value="cosyvoice-v1" checked>
+                        <div class="model-info">
+                            <div class="model-name">CosyVoice v1</div>
+                            <div class="model-desc">支持 instruction 情感指令，1元/万字符</div>
+                        </div>
+                        <span class="model-tag default">默认</span>
+                    </label>
+                    <label class="model-option" data-model="cosyvoice-v3-flash">
+                        <input type="radio" name="ttsModel" value="cosyvoice-v3-flash">
+                        <div class="model-info">
+                            <div class="model-name">CosyVoice v3 Flash</div>
+                            <div class="model-desc">instruction + SSML + 多语种</div>
+                        </div>
+                    </label>
+                    <label class="model-option" data-model="cosyvoice-v3.5-flash">
+                        <input type="radio" name="ttsModel" value="cosyvoice-v3.5-flash">
+                        <div class="model-info">
+                            <div class="model-name">CosyVoice v3.5 Flash</div>
+                            <div class="model-desc">最新版，任意指令，仅复刻音色</div>
+                        </div>
+                        <span class="model-tag new">最新</span>
+                    </label>
+                    <label class="model-option" data-model="cosyvoice-v3.5-plus">
+                        <input type="radio" name="ttsModel" value="cosyvoice-v3.5-plus">
+                        <div class="model-info">
+                            <div class="model-name">CosyVoice v3.5 Plus</div>
+                            <div class="model-desc">最新版，最高质量，仅复刻音色</div>
+                        </div>
+                        <span class="model-tag new">最新</span>
+                    </label>
+                </div>
+                <div id="modelWarning" style="display:none;margin-top:8px;padding:8px;border-radius:6px;background:rgba(253,203,110,0.1);font-size:11px;color:var(--warning)">
+                    v3.5 系列无系统音色，请先在"复刻音色管理"中创建音色，或使用已有复刻音色。
+                </div>
+            </div>
+
             <!-- TTS Test -->
             <div class="panel">
                 <h3>TTS 独立测试</h3>
                 <div class="tts-form">
                     <textarea id="ttsText" placeholder="输入要合成的文本...">你好世界！今天天气真好！</textarea>
                     <input id="ttsInstruction" placeholder="情感指令（如：用开心的语气说话）" value="用开心愉悦的语气说话，带着笑意">
-                    <select id="ttsVoice">
-                        <option value="">默认音色</option>
-                        <option value="longxiaochun">龙小淳</option>
-                        <option value="longyuan">龙远</option>
-                        <option value="longhua">龙华</option>
-                    </select>
-                    <button class="btn btn-primary" onclick="testTTS()">合成音频</button>
+                    <div class="voice-select-row">
+                        <select id="ttsVoice"></select>
+                        <span class="voice-hint" id="voiceHint"></span>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-primary" onclick="testTTS()">合成音频</button>
+                        <button class="btn btn-compare" onclick="compareTTS()">A/B 对比</button>
+                    </div>
                     <div id="ttsResult"></div>
                     <div id="ttsAudio"></div>
+                    <div class="compare-results" id="compareResults" style="display:none"></div>
                 </div>
             </div>
 
@@ -355,6 +529,35 @@
         let audioCount = 0;
         let currentAssistantMsg = null;
 
+        // 模型版本对应的默认音色
+        const MODEL_VOICES = {
+            'cosyvoice-v1': [
+                { id: '', label: '默认音色' },
+                { id: 'longxiaochun', label: '龙小淳' },
+                { id: 'longwan', label: '龙婉' },
+                { id: 'longhua', label: '龙华' },
+                { id: 'longyuan', label: '龙远' },
+                { id: 'longxiaoxia', label: '龙小夏' },
+                { id: 'longshuo', label: '龙硕' },
+                { id: 'longjing', label: '龙静' },
+                { id: 'longmiao', label: '龙妙' },
+                { id: 'longfei', label: '龙飞' },
+                { id: 'longyue', label: '龙悦' },
+            ],
+            'cosyvoice-v3-flash': [
+                { id: '', label: '默认音色 (龙安阳)' },
+                { id: 'longanyang', label: '龙安阳' },
+                { id: 'longxiaocheng', label: '龙小诚' },
+                { id: 'longshu', label: '龙舒' },
+                { id: 'longyingjing_v3', label: '龙英静 v3' },
+                { id: 'longlaotie_v3', label: '龙老铁 v3' },
+            ],
+            'cosyvoice-v3.5-flash': [],
+            'cosyvoice-v3.5-plus': [],
+        };
+
+        let clonedVoices = []; // 存储复刻音色列表
+
         // ===== Logging =====
         function addLog(text, type = '') {
             const area = document.getElementById('logArea');
@@ -365,6 +568,76 @@
             area.appendChild(entry);
             area.scrollTop = area.scrollHeight;
         }
+
+        // ===== Model Switch =====
+        function getSelectedModel() {
+            const radio = document.querySelector('input[name="ttsModel"]:checked');
+            return radio ? radio.value : 'cosyvoice-v1';
+        }
+
+        function updateVoiceOptions() {
+            const model = getSelectedModel();
+            const select = document.getElementById('ttsVoice');
+            const warning = document.getElementById('modelWarning');
+            const hint = document.getElementById('voiceHint');
+            select.innerHTML = '';
+
+            const voices = MODEL_VOICES[model] || [];
+            const isV35 = model.startsWith('cosyvoice-v3.5');
+
+            // 添加系统音色
+            if (voices.length > 0) {
+                voices.forEach(v => {
+                    const opt = document.createElement('option');
+                    opt.value = v.id;
+                    opt.textContent = v.label;
+                    select.appendChild(opt);
+                });
+            }
+
+            // 添加复刻音色
+            if (clonedVoices.length > 0) {
+                if (voices.length > 0) {
+                    const sep = document.createElement('option');
+                    sep.disabled = true;
+                    sep.textContent = '── 复刻音色 ──';
+                    select.appendChild(sep);
+                }
+                clonedVoices.forEach(v => {
+                    const opt = document.createElement('option');
+                    opt.value = v.voice_id;
+                    opt.textContent = `${v.name} (复刻)`;
+                    select.appendChild(opt);
+                });
+            }
+
+            // v3.5 无系统音色警告
+            if (isV35) {
+                warning.style.display = 'block';
+                if (clonedVoices.length === 0 && voices.length === 0) {
+                    const opt = document.createElement('option');
+                    opt.value = '';
+                    opt.textContent = '请先创建复刻音色';
+                    select.appendChild(opt);
+                    hint.textContent = '需复刻音色';
+                } else {
+                    hint.textContent = '';
+                }
+            } else {
+                warning.style.display = 'none';
+                hint.textContent = '';
+            }
+
+            // 更新 active 样式
+            document.querySelectorAll('.model-option').forEach(el => {
+                el.classList.toggle('active', el.dataset.model === model);
+            });
+
+            addLog(`切换模型: ${model}`, 'info');
+        }
+
+        // 监听模型切换
+        document.getElementById('modelSwitch').addEventListener('change', updateVoiceOptions);
 
         // ===== WebSocket =====
         function connectWS() {
@@ -405,16 +678,13 @@
                 msgCount++;
                 document.getElementById('msgCount').textContent = msgCount;
 
-                // Create or append to assistant message
                 if (!currentAssistantMsg) {
                     currentAssistantMsg = addAssistantMessage('', data.emotion);
                 }
 
-                // Append text
                 const textEl = currentAssistantMsg.querySelector('.msg-text');
                 textEl.textContent += data.text || '';
 
-                // Update emotion badge
                 if (data.emotion && data.emotion !== 'neutral') {
                     let badge = currentAssistantMsg.querySelector('.emotion-badge');
                     if (!badge) {
@@ -426,7 +696,6 @@
                     badge.className = `emotion-badge emotion-${data.emotion}`;
                 }
 
-                // Add audio player if audio data present
                 if (data.audio) {
                     audioCount++;
                     document.getElementById('audioCount').textContent = audioCount;
@@ -440,7 +709,6 @@
                     audioContainer.appendChild(playerDiv);
                 }
 
-                // Show actions
                 if (data.actions && data.actions.length > 0) {
                     let actionsEl = currentAssistantMsg.querySelector('.actions-list');
                     if (!actionsEl) {
@@ -540,13 +808,15 @@
             }
         }
 
-        // ===== TTS Test =====
+        // ===== TTS Test (单模型) =====
         async function testTTS() {
             const text = document.getElementById('ttsText').value.trim();
             const instruction = document.getElementById('ttsInstruction').value.trim();
             const voice = document.getElementById('ttsVoice').value;
+            const model = getSelectedModel();
             const resultDiv = document.getElementById('ttsResult');
             const audioDiv = document.getElementById('ttsAudio');
+            const compareDiv = document.getElementById('compareResults');
 
             if (!text) {
                 resultDiv.className = 'tts-result error';
@@ -555,32 +825,36 @@
             }
 
             resultDiv.className = 'tts-result';
-            resultDiv.textContent = '合成中...';
+            resultDiv.textContent = `使用 ${model} 合成中...`;
             audioDiv.innerHTML = '';
-            addLog(`TTS 合成请求: text=${text.substring(0, 30)}...`, 'info');
+            compareDiv.style.display = 'none';
+            addLog(`TTS 合成请求: model=${model}, text=${text.substring(0, 30)}...`, 'info');
 
             try {
                 const formData = new FormData();
                 formData.append('text', text);
                 formData.append('emotion_instruction', instruction);
                 formData.append('voice_id', voice);
+                formData.append('tts_model', model);
 
+                const startTime = performance.now();
                 const resp = await fetch(`${BASE_URL}/api/tts/synthesize`, {
                     method: 'POST',
                     body: formData,
                 });
+                const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
 
                 if (resp.ok) {
                     const blob = await resp.blob();
                     const url = URL.createObjectURL(blob);
                     resultDiv.className = 'tts-result success';
-                    resultDiv.textContent = `合成成功: ${(blob.size / 1024).toFixed(1)} KB`;
+                    resultDiv.textContent = `[${model}] 合成成功: ${(blob.size / 1024).toFixed(1)} KB, 耗时 ${elapsed}s`;
                     audioDiv.innerHTML = `<audio controls src="${url}" style="width:100%;margin-top:8px"></audio>`;
-                    addLog(`TTS 合成成功: ${blob.size} bytes`, 'success');
+                    addLog(`TTS 合成成功: model=${model}, ${blob.size} bytes, ${elapsed}s`, 'success');
                 } else {
                     const err = await resp.json();
                     resultDiv.className = 'tts-result error';
-                    resultDiv.textContent = `合成失败: ${err.error}`;
+                    resultDiv.textContent = `[${model}] 合成失败: ${err.error}`;
                     addLog(`TTS 合成失败: ${err.error}`, 'error');
                 }
             } catch (e) {
@@ -590,14 +864,124 @@
             }
         }
 
+        // ===== TTS A/B 对比 =====
+        async function compareTTS() {
+            const text = document.getElementById('ttsText').value.trim();
+            const instruction = document.getElementById('ttsInstruction').value.trim();
+            const voice = document.getElementById('ttsVoice').value;
+            const resultDiv = document.getElementById('ttsResult');
+            const audioDiv = document.getElementById('ttsAudio');
+            const compareDiv = document.getElementById('compareResults');
+
+            if (!text) {
+                resultDiv.className = 'tts-result error';
+                resultDiv.textContent = '请输入文本';
+                return;
+            }
+
+            // 获取当前选中的模型作为 A
+            const modelA = getSelectedModel();
+
+            // 弹出选择 B 模型
+            const allModels = ['cosyvoice-v1', 'cosyvoice-v3-flash', 'cosyvoice-v3.5-flash', 'cosyvoice-v3.5-plus'];
+            const otherModels = allModels.filter(m => m !== modelA);
+            const modelB = prompt(
+                `当前模型 A: ${modelA}\n请选择对比模型 B（输入序号）:\n` +
+                otherModels.map((m, i) => `${i + 1}. ${m}`).join('\n'),
+                '1'
+            );
+
+            if (!modelB) return;
+            const modelBIndex = parseInt(modelB) - 1;
+            if (isNaN(modelBIndex) || modelBIndex < 0 || modelBIndex >= otherModels.length) {
+                resultDiv.className = 'tts-result error';
+                resultDiv.textContent = '无效的选择';
+                return;
+            }
+            const selectedModelB = otherModels[modelBIndex];
+
+            resultDiv.className = 'tts-result';
+            resultDiv.textContent = `A/B 对比中: ${modelA} vs ${selectedModelB}...`;
+            audioDiv.innerHTML = '';
+            compareDiv.style.display = 'flex';
+            compareDiv.innerHTML = `
+                <div class="compare-item" id="compareA">
+                    <div class="compare-label">
+                        <span>模型 A</span>
+                        <span class="model-badge">${modelA}</span>
+                    </div>
+                    <div class="compare-status">合成中...</div>
+                </div>
+                <div class="compare-item item-b" id="compareB">
+                    <div class="compare-label">
+                        <span>模型 B</span>
+                        <span class="model-badge">${selectedModelB}</span>
+                    </div>
+                    <div class="compare-status">合成中...</div>
+                </div>
+            `;
+
+            addLog(`A/B 对比开始: ${modelA} vs ${selectedModelB}`, 'info');
+
+            // 并行请求两个模型
+            const synthesize = async (model, containerId) => {
+                const container = document.getElementById(containerId);
+                const statusEl = container.querySelector('.compare-status');
+                try {
+                    const formData = new FormData();
+                    formData.append('text', text);
+                    formData.append('emotion_instruction', instruction);
+                    formData.append('voice_id', voice);
+                    formData.append('tts_model', model);
+
+                    const startTime = performance.now();
+                    const resp = await fetch(`${BASE_URL}/api/tts/synthesize`, {
+                        method: 'POST',
+                        body: formData,
+                    });
+                    const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
+
+                    if (resp.ok) {
+                        const blob = await resp.blob();
+                        const url = URL.createObjectURL(blob);
+                        statusEl.textContent = `合成成功: ${(blob.size / 1024).toFixed(1)} KB, 耗时 ${elapsed}s`;
+                        statusEl.style.color = 'var(--success)';
+                        const audio = document.createElement('audio');
+                        audio.controls = true;
+                        audio.src = url;
+                        container.appendChild(audio);
+                        addLog(`[${model}] 合成成功: ${blob.size} bytes, ${elapsed}s`, 'success');
+                    } else {
+                        const err = await resp.json();
+                        statusEl.textContent = `合成失败: ${err.error}`;
+                        statusEl.style.color = 'var(--danger)';
+                        addLog(`[${model}] 合成失败: ${err.error}`, 'error');
+                    }
+                } catch (e) {
+                    statusEl.textContent = `请求失败: ${e.message}`;
+                    statusEl.style.color = 'var(--danger)';
+                    addLog(`[${model}] 请求失败: ${e.message}`, 'error');
+                }
+            };
+
+            await Promise.all([
+                synthesize(modelA, 'compareA'),
+                synthesize(selectedModelB, 'compareB'),
+            ]);
+
+            resultDiv.className = 'tts-result success';
+            resultDiv.textContent = `A/B 对比完成: ${modelA} vs ${selectedModelB}`;
+        }
+
         // ===== Voice Management =====
         async function loadVoices() {
             const listDiv = document.getElementById('voiceList');
             try {
                 const resp = await fetch(`${BASE_URL}/api/voice/list`);
                 const data = await resp.json();
-                if (data.voices && data.voices.length > 0) {
-                    listDiv.innerHTML = data.voices.map(v => `
+                clonedVoices = data.voices || [];
+                if (clonedVoices.length > 0) {
+                    listDiv.innerHTML = clonedVoices.map(v => `
                         <div class="voice-item">
                             <div>
                                 <div class="name">${v.name}</div>
@@ -609,7 +993,9 @@
                 } else {
                     listDiv.innerHTML = '<div style="color:var(--text2);font-size:13px">暂无复刻音色</div>';
                 }
-                addLog(`加载音色列表: ${data.voices ? data.voices.length : 0} 个`, 'success');
+                addLog(`加载音色列表: ${clonedVoices.length} 个`, 'success');
+                // 更新音色下拉框
+                updateVoiceOptions();
             } catch (e) {
                 listDiv.innerHTML = '<div style="color:var(--danger);font-size:13px">加载失败</div>';
                 addLog(`加载音色列表失败: ${e.message}`, 'error');
@@ -641,7 +1027,7 @@
 
         connectWS();
         checkHealth();
-        loadVoices();
+        loadVoices(); // 这会同时触发 updateVoiceOptions
     </script>
 </body>
 </html>

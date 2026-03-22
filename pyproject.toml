@@ -7,7 +7,7 @@ name = "emotions-system"
 version = "1.0.0"
 description = "情感驱动的多模态语音合成系统 — 融合 Emotions-Express 与 CosyVoice"
 readme = "README.md"
-license = {text = "MIT"}
+license = "MIT"
 requires-python = ">=3.11"
 authors = [
     {name = "Manus AI"},
@@ -22,7 +22,7 @@ dependencies = [
     "dashscope>=1.23.4",
     "python-multipart>=0.0.6",
     "python-dotenv>=1.0.0",
-    "volcenginesdkarkruntime>=1.0.0",
+    "volcengine-python-sdk[ark]>=5.0.0",
 ]
 
 [project.optional-dependencies]
@@ -32,6 +32,9 @@ dev = [
     "pytest-cov>=4.1.0",
     "ruff>=0.1.0",
 ]
+
+[tool.setuptools.packages.find]
+include = ["core*", "services*", "adapters*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

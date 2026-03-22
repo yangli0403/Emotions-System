@@ -7,6 +7,7 @@ Emotions-System — CosyVoice TTS 服务实现
 - 双向流式合成（基于 ResultCallback）
 - 复刻音色调用
 - [laughter] / [breath] 内生标记
+- 多版本模型切换（v1 / v3-flash / v3.5-flash / v3.5-plus）
 """
 
 from __future__ import annotations
@@ -32,12 +33,23 @@ DEFAULT_EMOTION_INSTRUCTIONS: Dict[str, str] = {
     "disgusted": "用厌恶不屑的语气说话。",
 }
 
+# 各版本模型的默认音色映射
+MODEL_DEFAULT_VOICES: Dict[str, str] = {
+    "cosyvoice-v1": "longxiaochun",
+    "cosyvoice-v2": "longxiaochun_v2",
+    "cosyvoice-v3-flash": "longanyang",
+    "cosyvoice-v3-plus": "longanyang",
+    "cosyvoice-v3.5-flash": "",   # 无系统音色，需复刻音色
+    "cosyvoice-v3.5-plus": "",    # 无系统音色，需复刻音色
+}
+
 
 class CosyVoiceTTSService(ITTSService):
     """基于阿里百炼 CosyVoice API 的 TTS 服务实现。
 
     使用 DashScope SDK 调用 CosyVoice 模型进行语音合成。
     支持双向流式合成以降低首字响应延迟。
+    支持通过 model_override 参数临时切换模型版本进行对比测试。
     """
 
     def __init__(
@@ -84,11 +96,31 @@ class CosyVoiceTTSService(ITTSService):
         # CosyVoice instruction 限制 100 字符
         return instruction[:100]
 
+    def _resolve_voice(self, voice_id: str, model: str) -> str:
+        """根据模型版本解析实际使用的音色。
+
+        Args:
+            voice_id: 用户指定的音色 ID。
+            model: 当前使用的模型版本。
+
+        Returns:
+            实际使用的音色 ID。
+        """
+        if voice_id:
+            return voice_id
+        # 如果用户没指定音色，使用对应版本的默认音色
+        default = MODEL_DEFAULT_VOICES.get(model, "")
+        if default:
+            return default
+        # v3.5 没有系统音色，回退到 v1 默认音色
+        return self.default_voice
+
     async def synthesize_stream(
         self,
         text: str,
         emotion_instruction: str = "",
         voice_id: str = "",
+        model_override: Optional[str] = None,
     ) -> AsyncIterator[bytes]:
         """双向流式合成语音。
 
@@ -99,6 +131,7 @@ class CosyVoiceTTSService(ITTSService):
             text: 要合成的文本（可能包含 CosyVoice 标记）。
             emotion_instruction: 情感自然语言指令。
             voice_id: 复刻音色 ID 或系统内置音色 ID。
+            model_override: 临时覆盖的模型版本（用于 A/B 对比测试）。
 
         Yields:
             音频数据块（WAV 格式）。
@@ -107,11 +140,13 @@ class CosyVoiceTTSService(ITTSService):
             logger.warning("TTS 收到空文本，跳过合成")
             return
 
-        voice = voice_id if voice_id else self.default_voice
+        # 确定实际使用的模型版本
+        actual_model = model_override if model_override else self.model
+        voice = self._resolve_voice(voice_id, actual_model)
         instruction = self._get_instruction(emotion_instruction)
 
         logger.info(
-            f"CosyVoice 流式合成: voice={voice}, "
+            f"CosyVoice 流式合成: model={actual_model}, voice={voice}, "
             f"instruction={instruction[:30]}..., "
             f"text={text[:50]}..."
         )
@@ -159,13 +194,22 @@ class CosyVoiceTTSService(ITTSService):
 
             collector = _AudioCollector()
 
-            synthesizer = SpeechSynthesizer(
-                model=self.model,
+            # 构建 SpeechSynthesizer 参数
+            synth_kwargs = dict(
+                model=actual_model,
                 voice=voice,
                 format=AudioFormat.WAV_22050HZ_MONO_16BIT,
-                instruction=instruction,
                 callback=collector,
             )
+
+            # instruction 参数支持情况：
+            # v1: 支持（系统音色）
+            # v3-flash: 支持（复刻音色 + 部分系统音色）
+            # v3.5-flash/plus: 支持（仅复刻/设计音色）
+            if instruction:
+                synth_kwargs["instruction"] = instruction
+
+            synthesizer = SpeechSynthesizer(**synth_kwargs)
 
             # 分片发送文本以实现流式效果
             chunk_size = 20
@@ -185,9 +229,9 @@ class CosyVoiceTTSService(ITTSService):
             collector.completed.wait(timeout=30)
 
             if collector.error:
-                logger.error(f"CosyVoice 合成错误: {collector.error}")
+                logger.error(f"CosyVoice 合成错误 (model={actual_model}): {collector.error}")
                 raise RuntimeError(
-                    f"CosyVoice 合成失败: {collector.error}"
+                    f"CosyVoice 合成失败 (model={actual_model}): {collector.error}"
                 )
 
             # 合并所有音频块
@@ -195,11 +239,12 @@ class CosyVoiceTTSService(ITTSService):
                 audio_data = b"".join(collector.audio_chunks)
                 yield audio_data
                 logger.info(
-                    f"CosyVoice 合成完成: {len(audio_data)} bytes, "
+                    f"CosyVoice 合成完成: model={actual_model}, "
+                    f"{len(audio_data)} bytes, "
                     f"{len(collector.audio_chunks)} chunks"
                 )
             else:
-                logger.warning("CosyVoice 合成返回空音频")
+                logger.warning(f"CosyVoice 合成返回空音频 (model={actual_model})")
 
         except ImportError:
             logger.error(
@@ -209,14 +254,15 @@ class CosyVoiceTTSService(ITTSService):
         except RuntimeError:
             raise
         except Exception as e:
-            logger.error(f"CosyVoice 合成失败: {e}", exc_info=True)
-            raise RuntimeError(f"CosyVoice 合成失败: {e}") from e
+            logger.error(f"CosyVoice 合成失败 (model={actual_model}): {e}", exc_info=True)
+            raise RuntimeError(f"CosyVoice 合成失败 (model={actual_model}): {e}") from e
 
     async def synthesize_full(
         self,
         text: str,
         emotion_instruction: str = "",
         voice_id: str = "",
+        model_override: Optional[str] = None,
     ) -> bytes:
         """非流式完整合成语音（用于短文本或测试）。
 
@@ -224,13 +270,14 @@ class CosyVoiceTTSService(ITTSService):
             text: 要合成的文本。
             emotion_instruction: 情感自然语言指令。
             voice_id: 音色 ID。
+            model_override: 临时覆盖的模型版本（用于 A/B 对比测试）。
 
         Returns:
             完整的音频数据（WAV 格式）。
         """
         audio_chunks = []
         async for chunk in self.synthesize_stream(
-            text, emotion_instruction, voice_id
+            text, emotion_instruction, voice_id, model_override
         ):
             audio_chunks.append(chunk)
         return b"".join(audio_chunks)
@@ -241,6 +288,7 @@ class CosyVoiceTTSService(ITTSService):
         output_path: str,
         emotion_instruction: str = "",
         voice_id: str = "",
+        model_override: Optional[str] = None,
     ) -> str:
         """合成语音并保存为独立的音频文件。
 
@@ -249,6 +297,7 @@ class CosyVoiceTTSService(ITTSService):
             output_path: 输出音频文件的完整路径。
             emotion_instruction: 情感自然语言指令。
             voice_id: 复刻音色 ID 或系统内置音色 ID。
+            model_override: 临时覆盖的模型版本。
 
         Returns:
             实际保存的文件路径。
@@ -259,7 +308,7 @@ class CosyVoiceTTSService(ITTSService):
         from pathlib import Path
 
         audio_data = await self.synthesize_full(
-            text, emotion_instruction, voice_id
+            text, emotion_instruction, voice_id, model_override
         )
 
         if not audio_data:

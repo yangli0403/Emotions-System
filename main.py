@@ -257,8 +257,9 @@ async def synthesize_audio(
     text: str = Form(...),
     emotion_instruction: str = Form(""),
     voice_id: str = Form(""),
+    tts_model: str = Form(""),
 ):
-    """单独合成一段音频并返回 WAV 文件。"""
+    """单独合成一段音频并返回 WAV 文件。支持通过 tts_model 参数临时切换模型版本。"""
     from fastapi.responses import Response
 
     if not tts_service:
@@ -272,6 +273,7 @@ async def synthesize_audio(
             text=text,
             emotion_instruction=emotion_instruction,
             voice_id=voice_id,
+            model_override=tts_model if tts_model else None,
         )
         if not audio_data:
             return JSONResponse(
@@ -323,6 +325,51 @@ async def synthesize_to_file(
             status_code=500,
             content={"error": str(e)},
         )
+
+
+@app.get("/api/tts/models")
+async def list_tts_models():
+    """获取可用的 TTS 模型版本列表。"""
+    return JSONResponse(content={
+        "models": [
+            {
+                "id": "cosyvoice-v1",
+                "name": "CosyVoice v1",
+                "description": "支持 instruction 情感指令，性价比最高（1元/万字符）",
+                "voices": ["longxiaochun", "longwan", "longhua", "longyuan",
+                           "longxiaoxia", "longshuo", "longjing", "longmiao",
+                           "longfei", "longyue"],
+                "supports_instruction": True,
+                "supports_system_voice": True,
+            },
+            {
+                "id": "cosyvoice-v3-flash",
+                "name": "CosyVoice v3 Flash",
+                "description": "支持 instruction、SSML、多语种，速度快",
+                "voices": ["longanyang", "longxiaocheng", "longshu",
+                           "longyingjing_v3", "longlaotie_v3"],
+                "supports_instruction": True,
+                "supports_system_voice": True,
+            },
+            {
+                "id": "cosyvoice-v3.5-flash",
+                "name": "CosyVoice v3.5 Flash (最新)",
+                "description": "最新版本，任意指令控制，仅支持复刻/设计音色",
+                "voices": [],
+                "supports_instruction": True,
+                "supports_system_voice": False,
+            },
+            {
+                "id": "cosyvoice-v3.5-plus",
+                "name": "CosyVoice v3.5 Plus (最新)",
+                "description": "最新版本，最高质量，仅支持复刻/设计音色",
+                "voices": [],
+                "supports_instruction": True,
+                "supports_system_voice": False,
+            },
+        ],
+        "current_default": tts_service.model if tts_service else "cosyvoice-v1",
+    })
 
 
 @app.get("/health")

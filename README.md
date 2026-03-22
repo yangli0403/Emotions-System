@@ -13,7 +13,7 @@ Emotions-System 在原有 [Emotions-Express](https://github.com/Open-LLM-VTuber/
 - **多 LLM 后端支持**：支持 OpenAI 兼容 API 和字节火山引擎 Ark SDK（DeepSeek/豆包等模型），通过配置切换。
 - **可插拔兜底推理**：预留 V1（规则引擎）、V2（BERT 分类）、V3（句内情感分割）三级兜底推理架构。
 - **零样本声音复刻**：通过 DashScope Voice Cloning API，上传 3-10 秒参考音频即可创建个性化音色。
-- **Web 测试面板**：内置可视化测试界面，支持 WebSocket 对话、TTS 独立测试、音色管理。
+- **Web 测试面板**：内置可视化测试界面，支持 WebSocket 对话、TTS 独立测试、音色管理，**新增多版本模型（v1/v3/v3.5）一键切换与 A/B 对比功能**。
 - **Open-LLM-VTuber 协议兼容**：输出格式完全兼容主流虚拟人前端项目。
 
 ## Prerequisites
@@ -90,7 +90,12 @@ docker-compose up -d
 | `TTS_MODEL` | CosyVoice 模型版本（推荐 `cosyvoice-v1`） | `cosyvoice-v1` |
 | `TTS_DEFAULT_VOICE` | 默认音色 ID | `longxiaochun` |
 
-> **为什么推荐 cosyvoice-v1？** 本项目的核心功能是情感指令控制（instruction），而 cosyvoice-v2 **不支持**设置情感指令。cosyvoice-v1 支持 instruction 且价格更低（1元/万字符 vs 2元/万字符）。如需 SSML、LaTeX 等高级功能，可升级至 v3 系列。
+> **关于模型版本的选择：**
+> - **cosyvoice-v1**：性价比最高（1元/万字符），支持 instruction 情感指令，内置 `longxiaochun` 等系统音色。
+> - **cosyvoice-v3-flash**：支持 instruction、SSML 和多语种，内置 `longanyang` 等系统音色。
+> - **cosyvoice-v3.5-flash / plus**：最新版本，支持任意自然语言指令控制，效果最好。**注意：v3.5 系列没有系统音色，必须先通过声音复刻创建音色后才能使用。**
+> 
+> *您可以在 Web 测试面板中直接切换这几个版本进行 A/B 对比测试。*
 
 ### 全部环境变量
 
@@ -209,6 +214,7 @@ pytest --cov=. --cov-report=html
 | [ARCHITECTURE.md](ARCHITECTURE.md) | 架构设计文档 |
 | [INTERFACE_DESIGN.md](INTERFACE_DESIGN.md) | 接口与数据结构设计 |
 | [REQUIREMENTS_REFLECTION.md](REQUIREMENTS_REFLECTION.md) | 需求反思报告 |
+| [docs/EMOTION_TEST_CASES.md](docs/EMOTION_TEST_CASES.md) | 情感功能测试用例文档 |
 | [docs/](docs/) | 完整的 Word 格式文档（含可行性调研报告） |
 
 ## License
