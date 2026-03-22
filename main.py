@@ -8,8 +8,16 @@ FastAPI 应用，提供 WebSocket 和 REST API 接口。
 from __future__ import annotations
 
 import os
+import sys
 from dotenv import load_dotenv
 load_dotenv()  # 加载 .env 文件
+
+# Windows 平台 asyncio 事件循环兼容
+# Windows 默认使用 ProactorEventLoop，某些异步库（如 websockets）在此策略下可能存在兼容性问题
+# 设置为 WindowsSelectorEventLoopPolicy 以确保稳定性
+if sys.platform == "win32":
+    import asyncio
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 import json
 import logging

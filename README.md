@@ -56,7 +56,24 @@ cp .env.example .env
 python -m uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
-### 方式三：Docker 部署
+### 方式三：Windows 本地部署
+
+```cmd
+:: 1. 克隆仓库
+git clone https://github.com/yangli0403/Emotions-System.git
+cd Emotions-System
+
+:: 2. 切换到 Windows 适配分支（可选）
+git checkout windows-deploy
+
+:: 3. 运行一键启动脚本
+scripts\start_windows.bat
+:: 首次运行会自动创建 .env 文件，填入 API Key 后重新运行即可
+```
+
+详细的 Windows 部署步骤请参见 [Windows 部署指南](docs/WINDOWS_DEPLOYMENT_GUIDE.md)。
+
+### 方式四：Docker 部署
 
 ```bash
 # 1. 配置环境变量
@@ -136,7 +153,9 @@ Emotions-System/
 ├── static/                     # Web 测试前端
 │   └── index.html              # 可视化测试面板
 ├── scripts/                    # 工具脚本
-│   ├── start.sh                # 快速启动脚本
+│   ├── start.sh                # Linux/macOS 快速启动脚本
+│   ├── start_windows.bat       # Windows CMD 一键启动脚本
+│   ├── start_windows.ps1       # Windows PowerShell 启动脚本
 │   └── setup_manus.sh          # Manus 环境一键配置脚本
 ├── data/                       # 运行时数据目录
 │   ├── uploads/                # 音频上传目录
@@ -144,7 +163,9 @@ Emotions-System/
 ├── config.py                   # 配置管理（环境变量加载）
 ├── main.py                     # FastAPI 应用入口
 ├── tests/                      # 自动化测试套件（111 个测试，覆盖率 97%）
-├── docs/                       # 项目文档（Word 格式）
+├── docs/                       # 项目文档
+│   ├── EMOTION_TEST_CASES.md   # 情感功能测试用例文档
+│   ├── WINDOWS_DEPLOYMENT_GUIDE.md # Windows 部署指南
 │   ├── FEASIBILITY_RESEARCH_REPORT.docx
 │   ├── PRODUCT_SPEC.docx
 │   ├── ARCHITECTURE_DESIGN.docx
@@ -215,6 +236,7 @@ pytest --cov=. --cov-report=html
 | [INTERFACE_DESIGN.md](INTERFACE_DESIGN.md) | 接口与数据结构设计 |
 | [REQUIREMENTS_REFLECTION.md](REQUIREMENTS_REFLECTION.md) | 需求反思报告 |
 | [docs/EMOTION_TEST_CASES.md](docs/EMOTION_TEST_CASES.md) | 情感功能测试用例文档 |
+| [docs/WINDOWS_DEPLOYMENT_GUIDE.md](docs/WINDOWS_DEPLOYMENT_GUIDE.md) | Windows 本地部署指南 |
 | [docs/](docs/) | 完整的 Word 格式文档（含可行性调研报告） |
 
 ## License
